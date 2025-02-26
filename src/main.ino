@@ -1,39 +1,63 @@
-#include "camera_helpers.cpp"
-#include "motor_helpers.cpp"
-#include "inference_helpers.cpp"
+#include <Gestures_inferencing.h>
+#include "edge-impulse-sdk/dsp/image/image.hpp"
 
-// Camera and motor initialization
+#include "esp_camera.h"
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#include <ArduinoBLE.h>
+#include <Arduino.h>
+#include <stdint.h>
+#include "SCMD.h"
+#include "SCMD_config.h" //Contains #defines for common SCMD register names and values
+#include "Wire.h"
+#include "camera_helpers.h"
+#include "motor_helpers.h"
+#include "inference_helpers.h"
+
+SCMD myMotorDriver;
+
+// Define BLE and camera settings
+BLEService batteryService("180F");
+BLEUnsignedCharCharacteristic batteryLevelChar("2A19", BLERead | BLENotify);
+
+// SD card initialization
+static bool sd_sign = false;
+
 void setup() {
     Serial.begin(115200);
-
-    // Initialize camera
-    if (!initCamera()) {
-        Serial.println("Failed to initialize camera.");
-        return;
+    if (!sdCardInit()) {
+        Serial.println("SD card initialization failed");
+    }
+    
+    if (!cameraInit()) {
+        Serial.println("Camera initialization failed");
     }
 
-    // Initialize SD card
-    if (!initSDCard()) {
-        Serial.println("SD card initialization failed!");
-        return;
+    if (!BLE.begin()) {
+        Serial.println("BLE Initialization failed");
+        while (1);
     }
 
-    // Initialize BLE
-    initBLE();
+    // BLE setup
+    setupBLE();
 
-    // Initialize Motor
-    initMotor();
+    Serial.println("Bluetooth device active, waiting for connections...");
 }
 
 void loop() {
-    // Capture and process image
-    uint8_t* image = captureImage();
-    if (image != nullptr) {
-        // Run inference
-        runInference(image);
-        // Control motor based on inference result
-        controlMotorBasedOnInference();
+    BLEDevice central = BLE.central();
+    if (central) {
+        Serial.print("Connected to central: ");
+        Serial.println(central.address());
+        digitalWrite(LED_BUILTIN, HIGH);
+        
+        while (central.connected()) {
+            captureAndInfer();
+        }
+        
+        digitalWrite(LED_BUILTIN, LOW);
+        Serial.print("Disconnected from central: ");
+        Serial.println(central.address());
     }
-    delay(100);
 }
-
