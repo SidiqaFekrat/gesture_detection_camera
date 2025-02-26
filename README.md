@@ -1,4 +1,4 @@
-This project integrates an ESP32 camera module with a motor control system using Edge Impulse to create a gesture-controlled water shooting mechanism. The system detects hadn gestures via the ESP32 camera, triggers a water pump, and sends notifications via BLE.
+This project integrates an ESP32 camera module with a motor control system using Edge Impulse to create a gesture-controlled water shooting mechanism. The system detects hand gestures via the ESP32 camera, triggers a water pump, and sends notifications via BLE.
 
 #Requirements
 Hardware:
